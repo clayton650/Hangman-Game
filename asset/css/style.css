@@ -1,0 +1,77 @@
+
+/* Sticky footer styles
+source: https://getbootstrap.com/2.3.2/examples/sticky-footer.html;
+-------------------------------------------------- */
+html,
+body {
+  height: 100%;
+  /* The html and body elements cannot have any padding or margin. */
+}
+
+/* Wrapper for page content to push down footer */
+#wrap {
+  min-height: 100%;
+  height: auto !important;
+  height: 100%;
+  /* Negative indent footer by it's height */
+  margin: 0 auto -60px;
+}
+
+/* Set the fixed height of the footer here */
+#push,
+#footer {
+  height: 60px;
+}
+#footer {
+  background-color: #f5f5f5;
+}
+
+/* Lastly, apply responsive CSS fixes as needed */
+@media (max-width: 767px) {
+  #footer {
+    margin-left: -20px;
+    margin-right: -20px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+
+/* General Styles */
+
+body{
+  background: url("../image/geometry.png") repeat;
+}
+
+.container .credit {
+  margin: 20px 0;
+ }
+
+.muted {
+    color: #999999;
+}
+
+nav .navbar-brand.salmon{
+  color: #ffccbc;
+}
+
+#wordDisplay{
+  text-align: center;
+  margin-bottom: 20px;
+  margin-left: -5px;
+}
+
+#wordDisplay span.letter{
+  display: inline-block;
+  min-width: 6%;
+  font-size: 3em;
+  border-bottom: 4px solid #777;
+  margin-left: 5px;
+}
+
+#wordDisplay .letter.empty::after{
+  content:'\f000';
+  font-family: FontAwesome;
+  color: inherit;
+}
+
