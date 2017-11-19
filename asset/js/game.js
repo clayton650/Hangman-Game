@@ -584,18 +584,19 @@ function newGame(){
 //reset game
 function resetGame(){
 
-	confirm("This will delete your past games! You sure you want to reset?");
+	var c = confirm("This will delete your past games! You sure you want to reset?");
 
+	if(c){
+		messageWrapper.innerHTML = ""; //clear messages
+		guessWordObjectArray = buildGuessWordObjectArray(guessWordArray);
 
-	messageWrapper.innerHTML = ""; //clear messages
-	guessWordObjectArray = buildGuessWordObjectArray(guessWordArray);
+		//reset wins and losses score
+		wins=0;
+		losses=0;
+		drawScrore();
 
-	//reset wins and losses score
-	wins=0;
-	losses=0;
-	drawScrore();
-
-	newGame();
+		newGame();
+	}
 	
 };
 
