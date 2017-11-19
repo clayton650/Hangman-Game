@@ -1,8 +1,62 @@
-//** DOM elements
+//**** Leisureman - a leisurely word guessing game ****
+
+//Notes: 
+// - No jquery
+// - Game state is stored in object arrays which are created in buildKeyboardObjectArray() and buildGuessWordObjectArray()
+
+//TODO: 
+// - Turn below into a class
+// - supprot for hints
+// - finish comments
+// - Duplicate entry 'animation', ie: letter on keyboard and in guess word turns red to draw users attention to that letter already being used
+// - Better 'animation' of Leisureman graphic, right now the opacity decraments as user misses guesses
+// - Support spaces
+// - When you loose, show remaining characters in red
+// - Move messages to a fixed sidebar/ better placement/ui
+
+//** Game Variables
+
+//Keep track of wins and losses, incremented in handleResults()
+let wins=0;
+let losses=0;
+let play = false; //game status, default is pause
+let keyboardObjectArray = [];
+let guessWordArray = ["relaxation", "vacation", "beach", "pool", "cocktails", "sunscreen"];
+let guessWordObjectArray = [];
 
 
+//** DOM wrappers
 
-//**  Build the keyboard object
+let guessWordWrapper = document.getElementById('wordDisplay');
+
+//Wrapper where messages are injected
+let messageWrapper = document.getElementById('messageWrapper');
+
+//Nav buttons
+let playButtonHTML = document.getElementById('play');
+let pauseButtonHTML = document.getElementById('pause');
+let resetButtonHTML = document.getElementById("reset");
+
+
+//** Generic DOM Elements
+
+//Generic message div use to display messages, styling is handled by function that injects message
+let messageHTML = document.createElement('div');
+let infoMessageHTML = document.createElement('div');
+
+
+//** Handle Events
+
+//TODO: replace onkeyboardclick by simulating onkeyup in keyboardObject
+document.addEventListener("keyboardclick", handleUserClick);
+document.addEventListener("keyup", handleUserClick);
+
+playButtonHTML.addEventListener("click", toggleStatus);
+pauseButtonHTML.addEventListener("click", toggleStatus);
+resetButtonHTML.addEventListener("click", resetGame)
+
+messageHTML.addEventListener('click', newGame);
+infoMessageHTML.addEventListener('click', toggleStatus);
 
 // Create alphabet array
 // source: https://stackoverflow.com/questions/24597634/how-to-generate-an-array-of-alphabet-in-jquery
@@ -12,20 +66,76 @@ function genCharArray(charA, charZ) {
         a.push(String.fromCharCode(i));
     }
     return a;
-}
+
+};
+
 
 const alphabet = genCharArray('a', 'z');
 
 
+//** Game Functions **
+
+//Startup new game -- set up the initial objects, arrays, variables, and DOM elements 
+function gameInit(){
+
+	wins=0;	
+	losses=0;
+
+	drawScrore(); //set init score to 0 - 0
+
+	//1. create new DOM keyboard, this give the user a keyboard to click and also a way to see what keys
+	// have already been clicked. The object array is also used to store key click state.
+	keyboardObjectArray = buildKeyboardObjectArray(alphabet);
+
+	//2. create array of guess word objects to keep track of user guesses and win/loss state. 
+	guessWordObjectArray = buildGuessWordObjectArray(guessWordArray);
+
+	//3. Now that the guess word object array is create we can load a random word out of that array.
+	let guessWordObject = loadNewWord();
+
+	//4. This function uses the information stored within the guess word object to update the progress bar
+	// and the Leisureman graphic opacity 
+	drawProgressBar(guessWordObject);
+
+	//5. Pause game
+	play = false;
+	drawStatus();
+
+	//6. Display message to user with instructions on how to play the game
+	message="Welcome! Guess the word above using your keyboard keys (a-z) or above keyboard. ";
+	message+="The amount of guesses you have left is tracked in the above progress bar. ";
+	message+="You can pause the game at anytime using the pause button in the nav bar. "
+	message+="Each word has to do with leisure. "
+	message+="CLICK HERE TO START. "
+	infoMessageHTML.innerText = message;
+
+	classAttr = 'alert alert-info';
+	infoMessageHTML.setAttribute('class', classAttr);
+
+	messageWrapper.innerHTML = "";// clear other messages
+	messageWrapper.appendChild(infoMessageHTML)// inject message into #messageWrapper
+};
+
+
+gameInit(); //Run when page loads to setup the game
+
+
+//* Object Constructor Functions *
+
+//Build the keyboard object and inject each key into DOM
+//Each key has an event listener that echos a keyup-like event
+//Each object in this array stores its state which is how we 
+// track which keys have been pressed
 function buildKeyboardObjectArray(alphabetArray){
 
 	const keyboardWrapper = document.getElementById("keyboardWrapper");
-	keyboardWrapper.innerHTML = "";
+	keyboardWrapper.innerHTML = ""; //clear existing keyboard wrapper
+
 	let keyboardObjectArray	= [];
 
 	alphabetArray.forEach(function(letter, i){
 
-		let keyCode = letter.charCodeAt(0)
+		let keyCode = letter.charCodeAt(0);
 
 		let keyboardObject = {
 
@@ -45,7 +155,6 @@ function buildKeyboardObjectArray(alphabetArray){
 				buttonHTML.innerText = this.value;
 
 				buttonHTML.onclick = function(e){
-					//self.handleClick();
 					self.dispatchKeyboardClickEvent();
 				};
 
@@ -71,26 +180,25 @@ function buildKeyboardObjectArray(alphabetArray){
 				document.dispatchEvent(this.keyboardclick);
 			},
 
+			
 			reset: function(){
-				this.pressed = false;
-				this.handleClick();
+				//TODO: Finish and use so new object arrays don't need to be created each time a new game is started
 			},
 
 		};
 
+		//Create and inject button and save instance to object for easy DOM access
 		keyboardObject.buttonHTML = keyboardObject.buttonFactory();
 
+		//Add new objet to array
 		keyboardObjectArray.push(keyboardObject);
 
 	});
 
 	return keyboardObjectArray
 
-}
+};
 
-let keyboardObjectArray = buildKeyboardObjectArray(alphabet);
-
-let guessWordArray = ["set","clayton"];
 
 function buildGuessWordObjectArray(guessWordArray){
 
@@ -106,11 +214,11 @@ function buildGuessWordObjectArray(guessWordArray){
 			misses: 0,
 
 			isAvailable: function(){
-				return !this.used && !this.current
+				return !this.used && !this.current;
 			},
 
 			letterObjectFactory: function(){
-				let word = this.value
+				let word = this.value;
 				let statusArray = [];
 
 				for (let i=0; i < word.length; i++){
@@ -122,17 +230,17 @@ function buildGuessWordObjectArray(guessWordArray){
 					statusArray.push(statusObject);
 				}
 
-				return statusArray
+				return statusArray;
 			},
 
 			hasWon: function(){
 
 				//Check to see if all letters have been guessed
 				let hasWon = this.letterObjectArray.every(function(letter){
-					return letter.guessed
+					return letter.guessed;
 				});
 
-				return hasWon
+				return hasWon;
 			},
 
 			hasLost: function(){
@@ -141,8 +249,8 @@ function buildGuessWordObjectArray(guessWordArray){
 
 		}
 
-		guessWordObject.letterObjectArray = guessWordObject.letterObjectFactory()
-		guessWordObject.guesses = Math.floor(guessWordObject.value.length * 1.25)
+		guessWordObject.letterObjectArray = guessWordObject.letterObjectFactory();
+		guessWordObject.guesses = Math.floor(guessWordObject.value.length * 1.25);
 
 		guessWordObjectArray.push(guessWordObject);
 
@@ -150,13 +258,10 @@ function buildGuessWordObjectArray(guessWordArray){
 
 	return guessWordObjectArray;
 
-}
+};
 
 
-let guessWordObjectArray = buildGuessWordObjectArray(guessWordArray);
-
-let guessWordWrapper = document.getElementById('wordDisplay');
-
+//* Funtions to update DOM based on guessWordArray 
 
 function drawWord(wordObject){
 
@@ -168,7 +273,7 @@ function drawWord(wordObject){
 		//Loop over word and slit up each letter 
 		for (let i=0; i < wordObject.letterObjectArray.length; i++){
 
-			let letterObject = wordObject.letterObjectArray[i]
+			let letterObject = wordObject.letterObjectArray[i];
 			let buttonHTML = document.createElement('span');
 
 			//to do: add support for spaces
@@ -199,8 +304,6 @@ function drawProgressBar(wordObject){
  	let ratio = misses/guesses;
  	let percent = ratio < .1 ? 15 : ratio*100; //set minimum ratio to 15% so allowed guess amount is available
 
- 	console.log(percent)
-
   	let progressBarHTML = document.createElement('div');
   	progressBarHTML.setAttribute('class', 'progress-bar');
   	progressBarHTML.setAttribute('role', 'progressbar');
@@ -219,6 +322,8 @@ function drawProgressBar(wordObject){
 };
 
 
+//* Util functions 
+
 function getAvailableWord(){
 
 	let wordObject;
@@ -226,40 +331,18 @@ function getAvailableWord(){
 	//filter word object array by available objects
 	let availableWordObjects = guessWordObjectArray.filter(function(word){
 
-		return word.isAvailable()
+		return word.isAvailable();
 	});
 
 	if (availableWordObjects){
 
-		wordObject = availableWordObjects[Math.floor(Math.random()*availableWordObjects.length)]
+		wordObject = availableWordObjects[Math.floor(Math.random()*availableWordObjects.length)];
 	}
 	
 	return wordObject;
 
 };
 
-
-function loadNewWord(){
-
-	let availableWord = getAvailableWord();
-
-	if(availableWord){
-
-		availableWord.current = true;
-		drawWord(availableWord);
-
-	}else{
-		// handle game over scenario
-	}
-
-	return availableWord;
-
-};
-
-
-//TODO: move to reset or init?
-let initWord = loadNewWord(); //this loads the initial word
-drawProgressBar(initWord);
 
 function getCurrentWord(){
 
@@ -274,23 +357,43 @@ function getCurrentWord(){
 
 function getIndexesOfLetterInWord(letter, wordObject){
 
-	var letter = letter
-	let letterIndexArray = []
+	var letter = letter;
+	let letterIndexArray = [];
 
 	let letterIndexes = wordObject.letterObjectArray.forEach(function(letterObject, i){
 
 		let l = letterObject.letter.toLowerCase().trim();
 
 		if(letter === l){
-			letterIndexArray.push(i)
+			letterIndexArray.push(i);
 		}
 
 	});
 
-	return letterIndexArray
+	return letterIndexArray;
 
 };
 
+
+//* Load new word if one is available (not all used)
+
+function loadNewWord(){
+
+	let availableWord = getAvailableWord();
+
+	if(availableWord){
+
+		availableWord.current = true;
+		drawWord(availableWord);
+
+	}
+
+	return availableWord;
+
+};
+
+
+//* Event handler functions
 
 function handleUserGuess(letter, wordObject){
 
@@ -312,14 +415,12 @@ function handleUserGuess(letter, wordObject){
 
 	}else{
 
-		wordObject.misses++
+		wordObject.misses++;
 		drawProgressBar(wordObject);
 		
 	}
 
-
 };
-
 
 
 function handleUserClick(e){
@@ -360,25 +461,16 @@ function handleUserClick(e){
 
 };
 
-//Wrapper where messages are injected
-let messageWrapper = document.getElementById('messageWrapper');
-
-//Generic message, styling is handled in handleResults()
-let messageHTML = document.createElement('div');
-
-//Keep track of wins and losses, incremented in handleResults()
-let wins=0;
-let losses=0;
+//* Misc functions
 
 //Update the html with the current wins and losses values
 function drawScrore(){
 
-	document.getElementById('winScore').innerText = wins
-	document.getElementById('lossScore').innerText = losses
+	//TODO: Wins and losses should be calculated using buildGuessWordObjectArray
+	document.getElementById('winScore').innerText = wins;
+	document.getElementById('lossScore').innerText = losses;
 
-}
-
-drawScrore(); //set init score to 0 - 0
+};
 
 
 //Figure out if the use has won, lost, or is still playing. If won or lost, determine if there are more words left.
@@ -388,7 +480,7 @@ function handleResults(wordObject){
 	let hasLost = wordObject.hasLost();
 
 	let availableWord = getAvailableWord();
-	let message; //defined based on hasLost or hasWon below
+	let message; //defined based on hasLost or hasWon below below
 
 	//if the user has one or lost then display message to start new game or rest game
 	if(hasLost || hasWon){
@@ -414,14 +506,14 @@ function handleResults(wordObject){
 
 		if(availableWord){
 
-			messageHTML.innerText = message+" Click here to play again!"
+			messageHTML.innerText = message+" Click here to play again!";
 			messageHTML.setAttribute('class', classAttr);
 			
 
 		}else{
 
 			//if there are no more words let the user know
-			messageHTML.innerText = message+" BUT there are no more words left. Click here to reset the game."
+			messageHTML.innerText = message+" BUT there are no more words left. Click here to reset the game.";
 			messageHTML.setAttribute('class', 'alert alert-warning'); //if no other words are left change the message style to warning (yellow)
 
 		}
@@ -429,7 +521,7 @@ function handleResults(wordObject){
 		drawScrore();//update score
 
 		messageWrapper.innerHTML = "";// clear other messages
-		messageWrapper.appendChild(messageHTML)// inject message into #messageWrapper
+		messageWrapper.appendChild(messageHTML);// inject message into #messageWrapper
 
 		play =false; //pause game so no other inputs are triggered
 		drawStatus(); //update nav bar with pause status
@@ -439,19 +531,10 @@ function handleResults(wordObject){
 
 	}
 
-}
+};
 
-messageWrapper.addEventListener('click', newGame);
 
-//** Handle User Clicks
-//TODO: replace onkeyboardclick by simulating onkeyup in keyboardObject
-document.addEventListener("keyboardclick", handleUserClick);
-document.addEventListener("keyup", handleUserClick);
-
-let playButtonHTML = document.getElementById('play');
-let pauseButtonHTML = document.getElementById('pause');
-let play = false; //default is pause
-
+//Toggle the play variable between true and false
 function toggleStatus(){
 
 	if(play){
@@ -460,10 +543,12 @@ function toggleStatus(){
 		play=true;
 	}
 
+	messageWrapper.innerHTML = "";// clear messages
 	drawStatus();
 
 };
 
+//Update the nav bar based on play variable being true or false
 function drawStatus(){
 	playButtonHTML.setAttribute('class', '');
 	pauseButtonHTML.setAttribute('class', '');
@@ -475,15 +560,9 @@ function drawStatus(){
 
 };
 
-drawStatus();
-
-playButtonHTML.addEventListener("click", toggleStatus);
-pauseButtonHTML.addEventListener("click", toggleStatus);
-
-let resetButtonHTML = document.getElementById("reset");
-
-resetButtonHTML.addEventListener("click", resetGame)
-
+//TODO: The below two functions are similar to the initGame function at the top. Some refactoring could be done
+// to combine
+//Create a new game loading the next random available word, if one does not exist reset the game
 function newGame(){
 
 	messageWrapper.innerHTML = ""; //clear messages
@@ -500,9 +579,9 @@ function newGame(){
 		resetGame();
 	}
 
-}
+};
 
-
+//reset game
 function resetGame(){
 
 	confirm("This will delete your past games! You sure you want to reset?");
@@ -518,7 +597,7 @@ function resetGame(){
 
 	newGame();
 	
-}
+};
 
 
 
