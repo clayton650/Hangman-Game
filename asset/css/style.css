@@ -75,3 +75,17 @@ nav .navbar-brand.salmon{
   color: inherit;
 }
 
+#leisureman-wrapper{
+  text-align: center;
+}
+
+#leisureman{
+  display: inline-block;
+  margin: 0 auto;
+  text-align: left;
+}
+
+#messageWrapper{
+  cursor: pointer;
+}
+

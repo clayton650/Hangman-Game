@@ -5,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> 
 
 	<title>Leisureman</title>
-	<link rel="shortcut icon" href="asset/image/favicon-glass.ico">
+	<link rel="shortcut icon" href="asset/image/favicon.ico">
 
 	<script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
 
@@ -40,15 +40,16 @@
 	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 
 	      <ul class="nav navbar-nav">
-	        <li class="active"><a href="#">Play</a></li>
-	        <li><a href="#">Pause</a></li>
-	        <li><a href="#">Reset</a></li>
-	        <li><a href="#">Info</a></li>
+	        <li id="play"><a href="#">Play</a></li>
+	        <li id="pause"><a href="#">Pause</a></li>
+	       <!-- TODO:  <li id="next"><a href="#">Next</a></li> -->
+	        <li id="reset"><a href="#">Reset</a></li>
+	        <!-- TODO: <li><a href="#">Info</a></li> -->
 	      </ul>
 	   
 	      <ul class="nav navbar-nav navbar-right">
-	        <li><a href="#">Wins <span class="label label-primary">0</span></a></li>
-	        <li><a href="#">Losses <span class="label label-warning">0</span></a></li>
+	        <li><a href="#">Wins <span id="winScore" class="label label-primary">12</span></a></li>
+	        <li><a href="#">Losses <span id="lossScore" class="label label-warning">11</span></a></li>
 	      </ul>
 	    </div><!-- /.navbar-collapse -->
 	  </div><!-- /.container-fluid -->
@@ -57,7 +58,7 @@
 	<!-- Keyboard -->
 	<section class="container">
 		<div class="row">
-			<div class="xs-col-12 well">
+			<div class="col-xs-8 text-center col-xs-offset-2 well">
 				<div id="keyboardWrapper">
 				<!-- This is where the keyboard will be injected -->
 				</div>
@@ -85,28 +86,50 @@
 					<div class="panel-body">
 
 						<div class="row">
-							<div class="col-xs-1">
+							<div class="col-sm-1 col-xs-2">
 								<i class="fa fa-sun-o" aria-hidden="true"></i>
 							</div>
-							<div class="col-xs-10">
+							<div class="col-sm-10 col-xs-8">
 								<div id="progressBar" class="progress">
 									<!-- This is where the progress bar will be injected -->
 								</div>
 							</div>
-							<div class="col-xs-1">
-						  		<i class="fa fa-cloud" aria-hidden="true"></i>
+							<div class="col-sm-1 col-xs-2">
+						  		<i class="fa fa-cloud" aria-hidden="true">
+						  		</i>
 						  	</div>
 						</div>
 
-						<div class="row">
-					 		Category
-					    	Hint
-					    	Display
+						<div id="leisureman-wrapper">
+							<div id="leisureman">
+								&nbsp&nbsp/-------\<br>    
+								/^^^^^^\<br> 
+								&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp|&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp>-<br> 
+								&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp|&nbsp&nbsp&nbsp@_|__/\_<br>   
+								&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp|&nbsp&nbsp&nbsp___________<br> 
+
+								<!-- output will look something like this
+
+								 /----\       
+								/^^^^^^\ 
+								   |  >-
+								   | @_|__/\_   
+								   | ___________ 
+
+								-->
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
+		<div class="row">
+			<div id="messageWrapper" class="col-xs-8 col-xs-offset-2">
+				<!-- This is where the messages are injected -->
+			</div>
+		</div>
+		
+
 
 		<div id="push"></div>
 	</main>
@@ -125,10 +148,10 @@
 
 <!-- 
 
-  /----\          
- /^^^^^^\         
-    |	_
-    | @_|__/\_   
-    | ___________ 
+/----\       
+/^^^^^^\ 
+   |	_
+   | @_|__/\_   
+   | ___________ 
 
 -->

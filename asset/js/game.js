@@ -7,7 +7,7 @@
 // Create alphabet array
 // source: https://stackoverflow.com/questions/24597634/how-to-generate-an-array-of-alphabet-in-jquery
 function genCharArray(charA, charZ) {
-    var a = [], i = charA.charCodeAt(0), j = charZ.charCodeAt(0);
+    let a = [], i = charA.charCodeAt(0), j = charZ.charCodeAt(0);
     for (; i <= j; ++i) {
         a.push(String.fromCharCode(i));
     }
@@ -20,6 +20,7 @@ const alphabet = genCharArray('a', 'z');
 function buildKeyboardObjectArray(alphabetArray){
 
 	const keyboardWrapper = document.getElementById("keyboardWrapper");
+	keyboardWrapper.innerHTML = "";
 	let keyboardObjectArray	= [];
 
 	alphabetArray.forEach(function(letter, i){
@@ -34,7 +35,6 @@ function buildKeyboardObjectArray(alphabetArray){
 			pressed: false,
 			keyboardclick: new CustomEvent("keyboardclick", { "detail": keyCode }),
 
-
 			buttonFactory: function(){
 
 				let self = this;
@@ -45,7 +45,8 @@ function buildKeyboardObjectArray(alphabetArray){
 				buttonHTML.innerText = this.value;
 
 				buttonHTML.onclick = function(e){
-					self.handleClick();
+					//self.handleClick();
+					self.dispatchKeyboardClickEvent();
 				};
 
 				// Draw button HTML
@@ -63,9 +64,11 @@ function buildKeyboardObjectArray(alphabetArray){
 				this.buttonHTML.setAttribute('class','keyboard-letter btn btn-default active');
 				this.buttonHTML.setAttribute('disabled','disabled');
 
+			},
+
+			dispatchKeyboardClickEvent: function(){
 				// Dispatch/Trigger/Fire the event
 				document.dispatchEvent(this.keyboardclick);
-
 			},
 
 			reset: function(){
@@ -81,56 +84,79 @@ function buildKeyboardObjectArray(alphabetArray){
 
 	});
 
+	return keyboardObjectArray
+
 }
 
-buildKeyboardObjectArray(alphabet);
+let keyboardObjectArray = buildKeyboardObjectArray(alphabet);
 
-// ** 
+let guessWordArray = ["set","clayton"];
 
-const guessWordArray = ["clayton"];
-let guessWordObjectArray = [];
+function buildGuessWordObjectArray(guessWordArray){
 
-guessWordArray.forEach(function(word){
+	let guessWordObjectArray = [];
 
-	var guessWordObject = {
-		value: word,
-		won: false,
-		used: false,
-		current: false,
-		guesses: 0,
-		misses: 0,
+	guessWordArray.forEach(function(word){
 
-		isAvailable: function(){
-			return !this.used && !this.current
-		},
-		letterObjectFactory: function(){
-			var word = this.value
-			var statusArray = [];
+		const guessWordObject = {
+			value: word,
+			used: false,
+			current: false,
+			guesses: 0,
+			misses: 0,
 
-			for (var i=0; i < word.length; i++){
-				var statusObject = {
-					letter: word[i],
-					guessed: false
+			isAvailable: function(){
+				return !this.used && !this.current
+			},
+
+			letterObjectFactory: function(){
+				let word = this.value
+				let statusArray = [];
+
+				for (let i=0; i < word.length; i++){
+					let statusObject = {
+						letter: word[i],
+						guessed: false
+					}
+
+					statusArray.push(statusObject);
 				}
 
-				statusArray.push(statusObject);
+				return statusArray
+			},
+
+			hasWon: function(){
+
+				//Check to see if all letters have been guessed
+				let hasWon = this.letterObjectArray.every(function(letter){
+					return letter.guessed
+				});
+
+				return hasWon
+			},
+
+			hasLost: function(){
+				return this.misses === this.guesses;
 			}
 
-			return statusArray
 		}
 
-	}
+		guessWordObject.letterObjectArray = guessWordObject.letterObjectFactory()
+		guessWordObject.guesses = Math.floor(guessWordObject.value.length * 1.25)
 
-	guessWordObject.letterObjectArray = guessWordObject.letterObjectFactory()
-	guessWordObject.guesses = Math.floor(guessWordObject.value.length * 1.33)
+		guessWordObjectArray.push(guessWordObject);
 
-	guessWordObjectArray.push(guessWordObject);
+	});
 
-});
+	return guessWordObjectArray;
+
+}
 
 
+let guessWordObjectArray = buildGuessWordObjectArray(guessWordArray);
 
-const guessWordWrapper = document.getElementById('wordDisplay');
+let guessWordWrapper = document.getElementById('wordDisplay');
+
 
 function drawWord(wordObject){
 
@@ -140,10 +166,10 @@ function drawWord(wordObject){
 		guessWordWrapper.innerHTML = "";
 
 		//Loop over word and slit up each letter 
-		for (var i=0; i < wordObject.letterObjectArray.length; i++){
+		for (let i=0; i < wordObject.letterObjectArray.length; i++){
 
-			var letterObject = wordObject.letterObjectArray[i]
-			var buttonHTML = document.createElement('span');
+			let letterObject = wordObject.letterObjectArray[i]
+			let buttonHTML = document.createElement('span');
 
 			//to do: add support for spaces
 			if(letterObject.guessed){
@@ -158,6 +184,7 @@ function drawWord(wordObject){
 	}else{
 		//this should not run...
 	}
+
 };
 
 function drawProgressBar(wordObject){
@@ -165,12 +192,16 @@ function drawProgressBar(wordObject){
 	// <div class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 60%;"> 60% </div>
   
 	let progressBarWrapper = document.getElementById("progressBar");
+	let leisuremanDiv = document.getElementById("leisureman");
 
   	let misses = wordObject.misses;
  	let guesses = wordObject.guesses;
- 	let percent = misses/guesses*100;
+ 	let ratio = misses/guesses;
+ 	let percent = ratio < .1 ? 15 : ratio*100; //set minimum ratio to 15% so allowed guess amount is available
 
-  	let progressBarHTML = document.createElement("div");
+ 	console.log(percent)
+
+  	let progressBarHTML = document.createElement('div');
   	progressBarHTML.setAttribute('class', 'progress-bar');
   	progressBarHTML.setAttribute('role', 'progressbar');
   	progressBarHTML.setAttribute('aria-value', percent);
@@ -183,33 +214,34 @@ function drawProgressBar(wordObject){
   	progressBarWrapper.innerHTML = "";
   	progressBarWrapper.appendChild(progressBarHTML);
 
-}
+  	leisuremanDiv.style.opacity= 1-ratio;
+
+};
 
 
 function getAvailableWord(){
 
-	var wordObject;
+	let wordObject;
 
 	//filter word object array by available objects
-	var availableWordObjects = guessWordObjectArray.filter(function(word){
-		return word.isAvailable
+	let availableWordObjects = guessWordObjectArray.filter(function(word){
+
+		return word.isAvailable()
 	});
 
-	//TODO: If none are left, game over
 	if (availableWordObjects){
 
-		var wordObject = availableWordObjects[Math.floor(Math.random()*availableWordObjects.length)]
-
+		wordObject = availableWordObjects[Math.floor(Math.random()*availableWordObjects.length)]
 	}
 	
 	return wordObject;
 
-}
+};
 
 
 function loadNewWord(){
 
-	var availableWord = getAvailableWord();
+	let availableWord = getAvailableWord();
 
 	if(availableWord){
 
@@ -220,31 +252,34 @@ function loadNewWord(){
 		// handle game over scenario
 	}
 
-}
+	return availableWord;
+
+};
 
 
-loadNewWord();
-
+//TODO: move to reset or init?
+let initWord = loadNewWord(); //this loads the initial word
+drawProgressBar(initWord);
 
 function getCurrentWord(){
 
-	var currentWord = guessWordObjectArray.find(function(wordObject){
+	let currentWord = guessWordObjectArray.find(function(wordObject){
 		return wordObject.current;
 	})
 
 	return currentWord;
 
-}
+};
 
 
 function getIndexesOfLetterInWord(letter, wordObject){
 
 	var letter = letter
-	var letterIndexArray = []
+	let letterIndexArray = []
 
-	var letterIndexes = wordObject.letterObjectArray.forEach(function(letterObject, i){
+	let letterIndexes = wordObject.letterObjectArray.forEach(function(letterObject, i){
 
-		var l = letterObject.letter.toLowerCase().trim();
+		let l = letterObject.letter.toLowerCase().trim();
 
 		if(letter === l){
 			letterIndexArray.push(i)
@@ -253,7 +288,8 @@ function getIndexesOfLetterInWord(letter, wordObject){
 	});
 
 	return letterIndexArray
-}
+
+};
 
 
 function handleUserGuess(letter, wordObject){
@@ -261,51 +297,228 @@ function handleUserGuess(letter, wordObject){
 	//TODO: Check for game status - pause, play, etc
 	//make sure the letter is actually a letter
 
-	if(alphabet.indexOf(letter) !== -1){
+	let letterIndexArray = getIndexesOfLetterInWord(letter, wordObject);
 
-		var letterIndexArray = getIndexesOfLetterInWord(letter, wordObject);
-		if(letterIndexArray.length > 0){
-			letterIndexArray.forEach(function(i){
+	if(letterIndexArray.length > 0){
+		letterIndexArray.forEach(function(i){
 
-				//loop over each letterObject in word and update guessed property to true
-				wordObject.letterObjectArray[i].guessed = true;
+			//loop over each letterObject in word and update guessed property to true
+			wordObject.letterObjectArray[i].guessed = true;
 
-			})
+		})
 
+		//update UI
 		drawWord(wordObject);
 
-		}else{
-			wordObject.misses++
-			if(wordObject.misses === wordObject.guesses){
-				alert('Game Over');
+	}else{
+
+		wordObject.misses++
+		drawProgressBar(wordObject);
+		
+	}
+
+
+};
+
+
+
+function handleUserClick(e){
+
+	const keyCode =  e.keyCode || e.charCode || e.detail;
+	var letter = String.fromCharCode(keyCode).toLowerCase();
+	
+	//if game is not paused
+	if(play){
+		//Only pay attention to letters found in alphabet array
+		if(alphabet.indexOf(letter) !== -1){
+
+			//The state of each letter that has been pressed is stored in the keyboardObjectArray
+			//Find the letter that was just pressed in the array and check to see if it has been pressed
+			let keyboardObject = keyboardObjectArray.find(function(keyboardObject){
+				//TODO: could not get keyCodes to line up between keyup event and keyboardObject
+				return keyboardObject.value === letter;
+			});
+
+			//If the letter has not already been pressed, check to see if it is in the word
+			if (!keyboardObject.pressed){
+
+				let currentWord = getCurrentWord(); //get the current word, TODO: maybe cache in variable
+				//if in between games, ignore user input
+				if(currentWord){
+					handleUserGuess(letter, currentWord); //figure out if the letter is in the current word and update the word object and UI accordingly
+					keyboardObject.handleClick(); //update keyboard UI
+					handleResults(currentWord);
+				}
+					
+			}else{
+
+				//TODO: message?
+
 			}
-			drawProgressBar(wordObject);
 		}
+	}
+
+};
+
+//Wrapper where messages are injected
+let messageWrapper = document.getElementById('messageWrapper');
+
+//Generic message, styling is handled in handleResults()
+let messageHTML = document.createElement('div');
+
+//Keep track of wins and losses, incremented in handleResults()
+let wins=0;
+let losses=0;
+
+//Update the html with the current wins and losses values
+function drawScrore(){
+
+	document.getElementById('winScore').innerText = wins
+	document.getElementById('lossScore').innerText = losses
+
+}
+
+drawScrore(); //set init score to 0 - 0
+
+
+//Figure out if the use has won, lost, or is still playing. If won or lost, determine if there are more words left.
+function handleResults(wordObject){
+
+	let hasWon = wordObject.hasWon();
+	let hasLost = wordObject.hasLost();
+
+	let availableWord = getAvailableWord();
+	let message; //defined based on hasLost or hasWon below
+
+	//if the user has one or lost then display message to start new game or rest game
+	if(hasLost || hasWon){
+
+		wordObject.used = true;
+		wordObject.current = false;
+
+		if(hasLost){
+			losses++;
+			message='You LOST!';
+			classAttr = 'alert alert-danger'; //used to style the message red
+
+		}else{
+
+			wins++;
+			message='You WON!';
+			classAttr = 'alert alert-success'; //used to style the message green
+
+		}
+
+		//get the next word
+		let availableWord = getAvailableWord();
+
+		if(availableWord){
+
+			messageHTML.innerText = message+" Click here to play again!"
+			messageHTML.setAttribute('class', classAttr);
+			
+
+		}else{
+
+			//if there are no more words let the user know
+			messageHTML.innerText = message+" BUT there are no more words left. Click here to reset the game."
+			messageHTML.setAttribute('class', 'alert alert-warning'); //if no other words are left change the message style to warning (yellow)
+
+		}
+
+		drawScrore();//update score
+
+		messageWrapper.innerHTML = "";// clear other messages
+		messageWrapper.appendChild(messageHTML)// inject message into #messageWrapper
+
+		play =false; //pause game so no other inputs are triggered
+		drawStatus(); //update nav bar with pause status
+
+		
+
 
 	}
 
 }
 
-function handleUserClick(e){
+messageWrapper.addEventListener('click', newGame);
 
-	var keyCode =  e.keyCode || e.charCode || e.detail;
-	console.log(e);
-	var letter = String.fromCharCode(keyCode).toLowerCase();
-	var currentWord = getCurrentWord();
-	handleUserGuess(letter, currentWord)
+//** Handle User Clicks
+//TODO: replace onkeyboardclick by simulating onkeyup in keyboardObject
+document.addEventListener("keyboardclick", handleUserClick);
+document.addEventListener("keyup", handleUserClick);
+
+let playButtonHTML = document.getElementById('play');
+let pauseButtonHTML = document.getElementById('pause');
+let play = false; //default is pause
+
+function toggleStatus(){
+
+	if(play){
+		play=false;
+	}else{
+		play=true;
+	}
+
+	drawStatus();
+
+};
+
+function drawStatus(){
+	playButtonHTML.setAttribute('class', '');
+	pauseButtonHTML.setAttribute('class', '');
+	if(play){
+		playButtonHTML.setAttribute('class', 'active');
+	}else{
+		pauseButtonHTML.setAttribute('class', 'active');
+	}
+
+};
+
+drawStatus();
+
+playButtonHTML.addEventListener("click", toggleStatus);
+pauseButtonHTML.addEventListener("click", toggleStatus);
+
+let resetButtonHTML = document.getElementById("reset");
+
+resetButtonHTML.addEventListener("click", resetGame)
+
+function newGame(){
+
+	messageWrapper.innerHTML = ""; //clear messages
+	keyboardObjectArray = buildKeyboardObjectArray(alphabet);
+	drawStatus();
+	let newWordObject = loadNewWord();
+
+	play=true;
+	drawStatus();
+
+	if(newWordObject){
+		drawProgressBar(newWordObject);
+	}else{
+		resetGame();
+	}
 
 }
 
-//TODO: replace onkeyboardclick by simulating onkeyup in keyboardObject
-document.addEventListener("keyboardclick", handleUserClick)
-document.addEventListener("keyup", handleUserClick)
-// document.onkeyup = handleUserClick()
+
+function resetGame(){
+
+	confirm("This will delete your past games! You sure you want to reset?");
 
 
+	messageWrapper.innerHTML = ""; //clear messages
+	guessWordObjectArray = buildGuessWordObjectArray(guessWordArray);
 
+	//reset wins and losses score
+	wins=0;
+	losses=0;
+	drawScrore();
 
-
-
+	newGame();
+	
+}
 
 
 
